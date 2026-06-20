@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarberCraft — Hair & Beard Style Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@1,400;1,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --gold-dark: #8B6914;
+    --obsidian: #0A0A0A;
+    --smoke: #141414;
+    --smoke2: #1E1E1E;
+    --off-white: #F0EBE1;
+    --muted: #7A7165;
+    --accent-red: #8B1A1A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--obsidian);
+    color: var(--off-white);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ── CUSTOM CURSOR ── */
+  .cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--gold);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease, width 0.3s, height 0.3s;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 40px; height: 40px;
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease, width 0.3s, height 0.3s, opacity 0.3s;
+    opacity: 0.6;
+  }
+  .cursor.grow { width: 20px; height: 20px; }
+  .cursor-ring.grow { width: 60px; height: 60px; opacity: 0.3; }
+
+  /* ── LOADER ── */
+  #loader {
+    position: fixed; inset: 0;
+    background: var(--obsidian);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    transition: opacity 0.8s ease, visibility 0.8s;
+  }
+  #loader.hidden { opacity: 0; visibility: hidden; }
+  .loader-scissors {
+    font-size: 56px;
+    animation: scissorSpin 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes scissorSpin {
+    0% { transform: rotate(-20deg) scale(1); }
+    100% { transform: rotate(20deg) scale(1.15); }
+  }
+  .loader-bar {
+    width: 200px; height: 2px;
+    background: var(--smoke2);
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .loader-bar::after {
+    content: '';
+    position: absolute;
+    left: -100%; top: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    animation: loaderFill 1.4s ease-in-out forwards;
+  }
+  @keyframes loaderFill {
+    to { left: 100%; }
+  }
+  .loader-text {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeIn 0.8s 0.3s forwards;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    padding: 20px 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.4s, padding 0.4s;
+  }
+  nav.scrolled {
+    background: rgba(10,10,10,0.95);
+    backdrop-filter: blur(20px);
+    padding: 14px 60px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+  }
+  .nav-logo {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--off-white); }
+  .nav-links {
+    display: flex;
+    gap: 40px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--off-white);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    position: relative;
+    transition: color 0.3s;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0;
+    width: 0; height: 1px;
+    background: var(--gold);
+    transition: width 0.3s;
+  }
+  .nav-links a:hover { color: var(--gold); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-cta {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold) !important;
+    padding: 10px 24px !important;
+    transition: background 0.3s, color 0.3s !important;
+  }
+  .nav-cta:hover { background: var(--gold) !important; color: var(--obsidian) !important; }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--obsidian);
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 70% at 70% 50%, rgba(201,168,76,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 20% 80%, rgba(139,26,26,0.06) 0%, transparent 60%);
+  }
+  .hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+    background-size: 80px 80px;
+    animation: gridShift 20s linear infinite;
+  }
+  @keyframes gridShift {
+    to { transform: translateY(80px); }
+  }
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    max-width: 1200px;
+    padding: 0 60px;
+    width: 100%;
+  }
+  .hero-text {}
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    animation: slideUp 0.8s 1.5s forwards;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    width: 40px; height: 1px;
+    background: var(--gold);
+  }
+  .hero-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(44px, 5vw, 76px);
+    font-weight: 900;
+    line-height: 1.05;
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: slideUp 0.8s 1.7s forwards;
+  }
+  .hero-title .line2 {
+    color: var(--gold);
+    font-style: italic;
+    font-family: 'Playfair Display', serif;
+  }
+  .hero-desc {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 420px;
+    margin-bottom: 40px;
+    opacity: 0;
+    animation: slideUp 0.8s 1.9s forwards;
+  }
+  .hero-btns {
+    display: flex;
+    gap: 16px;
+    opacity: 0;
+    animation: slideUp 0.8s 2.1s forwards;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--obsidian);
+    border: none;
+    padding: 16px 36px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.1);
+    transform: translateX(-101%);
+    transition: transform 0.3s;
+  }
+  .btn-primary:hover::after { transform: translateX(0); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(201,168,76,0.3); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--off-white);
+    border: 1px solid rgba(240,235,225,0.3);
+    padding: 16px 36px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: none;
+    transition: border-color 0.3s, color 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+  .hero-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    opacity: 0;
+    animation: fadeScaleIn 1s 2s forwards;
+  }
+  @keyframes fadeScaleIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .barber-pole {
+    width: 80px; height: 300px;
+    position: relative;
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(201,168,76,0.2), inset 0 0 30px rgba(0,0,0,0.5);
+    border: 2px solid rgba(201,168,76,0.3);
+  }
+  .pole-stripe {
+    position: absolute;
+    width: 200%; height: 30px;
+    animation: poleScroll 2s linear infinite;
+  }
+  .pole-stripe:nth-child(1) { background: var(--gold); top: -30px; }
+  .pole-stripe:nth-child(2) { background: var(--off-white); top: 0px; }
+  .pole-stripe:nth-child(3) { background: var(--accent-red); top: 30px; }
+  .pole-stripe:nth-child(4) { background: var(--gold); top: 60px; }
+  .pole-stripe:nth-child(5) { background: var(--off-white); top: 90px; }
+  .pole-stripe:nth-child(6) { background: var(--accent-red); top: 120px; }
+  .pole-stripe:nth-child(7) { background: var(--gold); top: 150px; }
+  .pole-stripe:nth-child(8) { background: var(--off-white); top: 180px; }
+  .pole-stripe:nth-child(9) { background: var(--accent-red); top: 210px; }
+  .pole-stripe:nth-child(10) { background: var(--gold); top: 240px; }
+  .pole-stripe:nth-child(11) { background: var(--off-white); top: 270px; }
+  .pole-stripe:nth-child(12) { background: var(--accent-red); top: 300px; }
+  @keyframes poleScroll {
+    to { transform: translateY(60px) skewY(-45deg); }
+  }
+  .pole-glass {
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0.15) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.05) 100%);
+  }
+
+  .hero-cards {
+    position: absolute;
+    right: -30px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .hero-stat-card {
+    background: rgba(20,20,20,0.9);
+    border: 1px solid rgba(201,168,76,0.2);
+    padding: 14px 20px;
+    backdrop-filter: blur(20px);
+    min-width: 160px;
+    animation: floatCard 4s ease-in-out infinite;
+  }
+  .hero-stat-card:nth-child(2) { animation-delay: -2s; }
+  @keyframes floatCard {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .stat-num {
+    font-family: 'Cinzel', serif;
+    font-size: 28px;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION COMMON ── */
+  .section {
+    padding: 120px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .section-full {
+    padding: 120px 60px;
+  }
+  .section-eyebrow {
+    font-size: 10px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-eyebrow::before {
+    content: '';
+    width: 30px; height: 1px;
+    background: var(--gold);
+  }
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .section-title em {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-style: italic;
+  }
+  .section-sub {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 520px;
+    margin-bottom: 60px;
+  }
+
+  /* ── MARQUEE STRIP ── */
+  .marquee-strip {
+    border-top: 1px solid rgba(201,168,76,0.15);
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    padding: 16px 0;
+    overflow: hidden;
+    background: rgba(201,168,76,0.03);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 60px;
+    animation: marqueeMove 18s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes marqueeMove {
+    to { transform: translateX(-50%); }
+  }
+  .marquee-item {
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .marquee-item .dot { width: 4px; height: 4px; background: var(--gold); border-radius: 50%; }
+
+  /* ── SERVICES ── */
+  #services { background: var(--smoke); }
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.1);
+  }
+  .service-card {
+    background: var(--smoke);
+    padding: 50px 40px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.4s;
+    cursor: none;
+  }
+  .service-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    transform: scaleX(0);
+    transition: transform 0.4s;
+  }
+  .service-card:hover { background: rgba(201,168,76,0.05); }
+  .service-card:hover::before { transform: scaleX(1); }
+  .service-icon {
+    font-size: 36px;
+    margin-bottom: 20px;
+    display: block;
+    transition: transform 0.3s;
+  }
+  .service-card:hover .service-icon { transform: scale(1.15) rotate(5deg); }
+  .service-num {
+    position: absolute;
+    top: 30px; right: 30px;
+    font-family: 'Cinzel', serif;
+    font-size: 60px;
+    font-weight: 900;
+    color: rgba(201,168,76,0.06);
+    line-height: 1;
+    transition: color 0.4s;
+  }
+  .service-card:hover .service-num { color: rgba(201,168,76,0.12); }
+  .service-name {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--off-white);
+  }
+  .service-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+  .service-price {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  /* ── HOW IT WORKS ── */
+  #process { background: var(--obsidian); }
+  .process-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    position: relative;
+  }
+  .process-steps::before {
+    content: '';
+    position: absolute;
+    top: 40px; left: calc(12.5% + 20px); right: calc(12.5% + 20px);
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold), rgba(201,168,76,0.2), var(--gold));
+  }
+  .step {
+    padding: 0 30px;
+    text-align: center;
+  }
+  .step-circle {
+    width: 80px; height: 80px;
+    border: 1px solid rgba(201,168,76,0.4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+    background: var(--obsidian);
+    position: relative;
+    z-index: 1;
+    transition: border-color 0.3s, background 0.3s, transform 0.3s;
+  }
+  .step:hover .step-circle {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.1);
+    transform: scale(1.1);
+  }
+  .step-num {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .step-title {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .step-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+  /* ── UPLOAD SECTION ── */
+  #upload { background: var(--smoke); }
+  .upload-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .upload-zone {
+    border: 1px dashed rgba(201,168,76,0.4);
+    background: rgba(201,168,76,0.02);
+    padding: 60px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, background 0.3s;
+    cursor: none;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.06);
+  }
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: conic-gradient(transparent, rgba(201,168,76,0.05), transparent 30%);
+    animation: rotateBg 8s linear infinite;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .upload-zone:hover::before { opacity: 1; }
+  @keyframes rotateBg {
+    to { transform: rotate(360deg); }
+  }
+  .upload-icon { font-size: 56px; margin-bottom: 16px; }
+  .upload-title {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .upload-hint { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+  #fileInput { display: none; }
+  .upload-preview {
+    display: none;
+    margin-top: 20px;
+  }
+  .upload-preview img {
+    width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    border: 1px solid rgba(201,168,76,0.2);
+  }
+  .upload-preview-name {
+    font-size: 12px;
+    color: var(--gold);
+    margin-top: 8px;
+    text-align: left;
+  }
+
+  .upload-form {}
+  .form-group { margin-bottom: 24px; }
+  .form-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: rgba(30,30,30,0.8);
+    border: 1px solid rgba(201,168,76,0.2);
+    color: var(--off-white);
+    padding: 14px 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s;
+    cursor: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.04);
+  }
+  .form-select option { background: #1a1a1a; }
+  .form-textarea { resize: vertical; min-height: 100px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--obsidian);
+    border: none;
+    padding: 18px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: none;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.3s, transform 0.3s;
+  }
+  .submit-btn:hover { box-shadow: 0 8px 30px rgba(201,168,76,0.4); transform: translateY(-2px); }
+  .submit-btn .btn-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+  }
+  .submit-btn:hover .btn-shimmer { transform: translateX(100%); }
+
+  /* ── STYLES GALLERY ── */
+  #gallery { background: var(--obsidian); }
+  .gallery-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 40px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 14px 28px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: none;
+    position: relative;
+    transition: color 0.3s;
+  }
+  .tab-btn.active { color: var(--gold); }
+  .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 2px;
+    background: var(--gold);
+  }
+  .tab-btn:hover { color: var(--off-white); }
+  .tab-content { display: none; }
+  .tab-content.active { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  .gallery-item {
+    aspect-ratio: 3/4;
+    background: var(--smoke2);
+    position: relative;
+    overflow: hidden;
+    cursor: none;
+  }
+  .gallery-item-inner {
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    position: relative;
+    transition: transform 0.5s;
+  }
+  .gallery-item:hover .gallery-item-inner { transform: scale(1.03); }
+  .gallery-emoji { font-size: 64px; margin-bottom: 12px; }
+  .gallery-style-name {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .gallery-style-desc { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
+  .gallery-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    padding: 20px;
+  }
+  .gallery-item:hover .gallery-overlay { opacity: 1; }
+  .gallery-overlay-text {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    text-align: center;
+    color: var(--off-white);
+  }
+  .gallery-overlay-tag {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    border: 1px solid rgba(201,168,76,0.4);
+    padding: 6px 14px;
+  }
+
+  /* ── TESTIMONIALS ── */
+  #testimonials { background: var(--smoke); }
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .testimonial-card {
+    background: var(--smoke2);
+    padding: 36px;
+    border: 1px solid rgba(201,168,76,0.1);
+    position: relative;
+    transition: border-color 0.3s, transform 0.3s;
+    cursor: none;
+  }
+  .testimonial-card:hover { border-color: rgba(201,168,76,0.3); transform: translateY(-4px); }
+  .testimonial-quote {
+    font-family: 'Playfair Display', serif;
+    font-size: 40px;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 12px;
+    opacity: 0.6;
+  }
+  .testimonial-text {
+    font-size: 14px;
+    color: rgba(240,235,225,0.8);
+    line-height: 1.8;
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+  .testimonial-stars { color: var(--gold); font-size: 12px; margin-bottom: 16px; letter-spacing: 2px; }
+  .testimonial-author {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--off-white);
+  }
+  .testimonial-role { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── CTA SECTION ── */
+  #cta {
+    background: linear-gradient(135deg, #0D0B07 0%, #1A1509 50%, #0A0A0A 100%);
+    padding: 140px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  #cta::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(201,168,76,0.08) 0%, transparent 70%);
+  }
+  .cta-scissors {
+    font-size: 64px;
+    display: block;
+    margin-bottom: 24px;
+    animation: wiggle 3s ease-in-out infinite;
+  }
+  @keyframes wiggle {
+    0%,100% { transform: rotate(-15deg); }
+    50% { transform: rotate(15deg); }
+  }
+  .cta-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(32px, 4vw, 56px);
+    font-weight: 900;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .cta-sub {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 480px;
+    margin: 0 auto 40px;
+    line-height: 1.8;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #060606;
+    border-top: 1px solid rgba(201,168,76,0.1);
+    padding: 60px;
+  }
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 60px;
+  }
+  .footer-brand-name {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+  }
+  .footer-tagline { font-size: 13px; color: var(--muted); line-height: 1.8; max-width: 240px; }
+  .footer-col-title {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+  .footer-links { list-style: none; }
+  .footer-links li { margin-bottom: 10px; }
+  .footer-links a {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  .footer-links a:hover { color: var(--off-white); }
+  .footer-bottom {
+    max-width: 1200px;
+    margin: 40px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid rgba(201,168,76,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-copy { font-size: 12px; color: var(--muted); }
+  .footer-socials { display: flex; gap: 16px; }
+  .social-btn {
+    width: 38px; height: 38px;
+    border: 1px solid rgba(201,168,76,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    cursor: none;
+    transition: border-color 0.3s, background 0.3s;
+    text-decoration: none;
+  }
+  .social-btn:hover { border-color: var(--gold); background: rgba(201,168,76,0.1); }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.revealed { opacity: 1; transform: translateY(0); }
+
+  /* ── SUCCESS MESSAGE ── */
+  .success-toast {
+    position: fixed;
+    bottom: 40px; right: 40px;
+    background: rgba(20,20,20,0.95);
+    border: 1px solid var(--gold);
+    padding: 20px 28px;
+    z-index: 5000;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.4s;
+    backdrop-filter: blur(20px);
+  }
+  .success-toast.show { transform: translateY(0); opacity: 1; }
+  .toast-title {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .toast-msg { font-size: 12px; color: var(--muted); }
+
+  /* ── PARTICLES ── */
+  #particles {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: var(--gold);
+    border-radius: 50%;
+    animation: particleFloat linear infinite;
+    opacity: 0;
+  }
+  @keyframes particleFloat {
+    0% { transform: translateY(100vh) rotate(0); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-20px) rotate(720deg); opacity: 0; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    nav.scrolled { padding: 12px 24px; }
+    .nav-links { display: none; }
+    .hero-content { grid-template-columns: 1fr; padding: 0 24px; gap: 40px; }
+    .hero-visual { display: none; }
+    .section, .section-full { padding: 80px 24px; }
+    .services-grid { grid-template-columns: 1fr; }
+    .process-steps { grid-template-columns: 1fr 1fr; gap: 30px; }
+    .process-steps::before { display: none; }
+    .upload-inner { grid-template-columns: 1fr; gap: 40px; }
+    .tab-content.active { grid-template-columns: 1fr 1fr; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .footer-inner { grid-template-columns: 1fr 1fr; gap: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- PARTICLES -->
+<div id="particles"></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-scissors">✂️</div>
+  <div class="loader-bar"></div>
+  <div class="loader-text">BarberCraft Studio</div>
+</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="#" class="nav-logo">Barber<span>Craft</span></a>
+  <ul class="nav-links">
+    <li><a href="#services">Services</a></li>
+    <li><a href="#process">Process</a></li>
+    <li><a href="#gallery">Styles</a></li>
+    <li><a href="#testimonials">Reviews</a></li>
+    <li><a href="#upload" class="nav-cta">Get My Style PDF</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-text">
+      <div class="hero-eyebrow">Premium Style Consultation</div>
+      <h1 class="hero-title">
+        Your Perfect<br>
+        <span class="line2">Hair & Beard</span><br>
+        Awaits You
+      </h1>
+      <p class="hero-desc">
+        Upload your photo and receive a personalised PDF guide — curated styles that match your face shape, hair type, and lifestyle.
+      </p>
+      <div class="hero-btns">
+        <a href="#upload" class="btn-primary">Upload My Photo</a>
+        <a href="#gallery" class="btn-outline">Explore Styles</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="barber-pole">
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-stripe"></div>
+        <div class="pole-glass"></div>
+      </div>
+      <div class="hero-cards">
+        <div class="hero-stat-card">
+          <div class="stat-num">500+</div>
+          <div class="stat-label">PDFs Delivered</div>
+        </div>
+        <div class="hero-stat-card">
+          <div class="stat-num">98%</div>
+          <div class="stat-label">Satisfaction Rate</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-strip">
+  <div class="marquee-track" id="marqueeTrack">
+    <div class="marquee-item"><span>✂</span> Face Shape Analysis <span class="dot"></span></div>
+    <div class="marquee-item"><span>💈</span> Beard Sculpting Guide <span class="dot"></span></div>
+    <div class="marquee-item"><span>📄</span> Detailed PDF Report <span class="dot"></span></div>
+    <div class="marquee-item"><span>🎨</span> Color Suggestions <span class="dot"></span></div>
+    <div class="marquee-item"><span>✂</span> Haircut Recommendation <span class="dot"></span></div>
+    <div class="marquee-item"><span>💈</span> Styling Products <span class="dot"></span></div>
+    <div class="marquee-item"><span>📄</span> Personalised Style Guide <span class="dot"></span></div>
+    <div class="marquee-item"><span>✂</span> Face Shape Analysis <span class="dot"></span></div>
+    <div class="marquee-item"><span>💈</span> Beard Sculpting Guide <span class="dot"></span></div>
+    <div class="marquee-item"><span>📄</span> Detailed PDF Report <span class="dot"></span></div>
+    <div class="marquee-item"><span>🎨</span> Color Suggestions <span class="dot"></span></div>
+    <div class="marquee-item"><span>✂</span> Haircut Recommendation <span class="dot"></span></div>
+    <div class="marquee-item"><span>💈</span> Styling Products <span class="dot"></span></div>
+    <div class="marquee-item"><span>📄</span> Personalised Style Guide <span class="dot"></span></div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="section">
+    <div class="reveal">
+      <div class="section-eyebrow">What We Offer</div>
+      <h2 class="section-title">Expert <em>Style</em> Services</h2>
+      <p class="section-sub">From analysis to a complete personalised PDF guide — everything you need to look your absolute best.</p>
+    </div>
+    <div class="services-grid reveal">
+      <div class="service-card">
+        <span class="service-icon">💈</span>
+        <span class="service-num">01</span>
+        <div class="service-name">Hair Style Analysis</div>
+        <p class="service-desc">We study your face shape, hair texture, and lifestyle to recommend the perfect haircut that frames your features beautifully.</p>
+        <div class="service-price">Included in PDF Report</div>
+      </div>
+      <div class="service-card">
+        <span class="service-icon">🧔</span>
+        <span class="service-num">02</span>
+        <div class="service-name">Beard Shape Guide</div>
+        <p class="service-desc">Detailed beard styling guidance — neckline shape, cheek line, beard length and density recommendations for your face type.</p>
+        <div class="service-price">Included in PDF Report</div>
+      </div>
+      <div class="service-card">
+        <span class="service-icon">📋</span>
+        <span class="service-num">03</span>
+        <div class="service-name">Face Shape Report</div>
+        <p class="service-desc">Oval, round, square, heart or diamond — we identify your exact face shape and explain what styles work best for it.</p>
+        <div class="service-price">Included in PDF Report</div>
+      </div>
+      <div class="service-card">
+        <span class="service-icon">🎨</span>
+        <span class="service-num">04</span>
+        <div class="service-name">Color Consultation</div>
+        <p class="service-desc">Natural or coloured hair? We advise on tones that complement your skin undertone and personal style.</p>
+        <div class="service-price">Included in PDF Report</div>
+      </div>
+      <div class="service-card">
+        <span class="service-icon">🧴</span>
+        <span class="service-num">05</span>
+        <div class="service-name">Product Recommendations</div>
+        <p class="service-desc">A curated list of the best styling products for your specific hair type — pomades, waxes, serums, and beard oils.</p>
+        <div class="service-price">Included in PDF Report</div>
+      </div>
+      <div class="service-card">
+        <span class="service-icon">📄</span>
+        <span class="service-num">06</span>
+        <div class="service-name">Full PDF Style Guide</div>
+        <p class="service-desc">Everything compiled into a beautifully designed, print-ready PDF you can show your barber for a perfect result every time.</p>
+        <div class="service-price">Premium Personalised Report</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="process" class="section-full">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="reveal" style="text-align:center;margin-bottom:70px;">
+      <div class="section-eyebrow" style="justify-content:center;">How It Works</div>
+      <h2 class="section-title">Four <em>Simple</em> Steps</h2>
+      <p class="section-sub" style="margin:0 auto;">From photo to personalised PDF in a seamless, effortless process.</p>
+    </div>
+    <div class="process-steps reveal">
+      <div class="step">
+        <div class="step-circle">📸</div>
+        <div class="step-num">Step 01</div>
+        <div class="step-title">Upload Photo</div>
+        <p class="step-desc">Submit a clear front-facing photo showing your full face, natural hair, and beard.</p>
+      </div>
+      <div class="step">
+        <div class="step-circle">🔍</div>
+        <div class="step-num">Step 02</div>
+        <div class="step-title">Analysis</div>
+        <p class="step-desc">We analyse your face shape, hair texture, skin tone, and current style to build your profile.</p>
+      </div>
+      <div class="step">
+        <div class="step-circle">✂️</div>
+        <div class="step-num">Step 03</div>
+        <div class="step-title">Style Curation</div>
+        <p class="step-desc">Expert style recommendations are handpicked to match your unique features and lifestyle.</p>
+      </div>
+      <div class="step">
+        <div class="step-circle">📩</div>
+        <div class="step-num">Step 04</div>
+        <div class="step-title">Receive PDF</div>
+        <p class="step-desc">Your personalised, detailed PDF style guide lands in your inbox — ready to take to your barber.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UPLOAD -->
+<section id="upload" class="section-full">
+  <div class="upload-inner">
+    <div class="reveal">
+      <div class="section-eyebrow">Get Started</div>
+      <h2 class="section-title">Upload Your <em>Photo</em></h2>
+      <p class="section-sub">Share a clear, well-lit photo and we'll craft your bespoke style PDF guide within 24 hours.</p>
+
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📷</div>
+        <div class="upload-title">Drop Your Photo Here</div>
+        <p class="upload-hint">Upload a clear front-facing photo<br>JPG, PNG — Max 10MB<br>Good lighting gives the best results</p>
+        <a class="btn-primary" style="display:inline-block;font-size:11px;padding:12px 28px;">Choose File</a>
+        <input type="file" id="fileInput" accept="image/*">
+        <div class="upload-preview" id="uploadPreview">
+          <img id="previewImg" src="" alt="Preview">
+          <div class="upload-preview-name" id="previewName"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-note">
+      📸 <strong>How your photo is sent:</strong> After clicking the button below, WhatsApp will open with all your details pre-filled. Simply <strong>send your photo in that same WhatsApp chat</strong> — we receive everything together!
+    </div>
+
+    <div class="upload-form reveal">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input type="text" class="form-input" placeholder="Ahmad" id="fname">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input type="text" class="form-input" placeholder="Raza" id="lname">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-input" placeholder="you@example.com" id="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">WhatsApp Number</label>
+        <input type="text" class="form-input" placeholder="+92 300 1234567" id="phone">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Hair Style Interest</label>
+          <select class="form-select" id="hairStyle">
+            <option value="">Select Style</option>
+            <option>Undercut / Fade</option>
+            <option>Classic Taper</option>
+            <option>Textured Crop</option>
+            <option>Slick Back</option>
+            <option>Curly / Wavy Styles</option>
+            <option>Long & Layered</option>
+            <option>Buzz Cut</option>
+            <option>Not Sure — Suggest Me</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Beard Preference</label>
+          <select class="form-select" id="beardStyle">
+            <option value="">Select</option>
+            <option>Full Beard</option>
+            <option>Short Stubble</option>
+            <option>Goatee</option>
+            <option>Circle Beard</option>
+            <option>Mutton Chops</option>
+            <option>Clean Shaven</option>
+            <option>Not Sure — Suggest Me</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tell Us More (Optional)</label>
+        <textarea class="form-textarea" id="notes" placeholder="E.g. I work in a corporate office, prefer low maintenance styles, open to hair colouring..."></textarea>
+      </div>
+      <button class="submit-btn" onclick="handleSubmit()">
+        <span class="btn-shimmer"></span>
+        ✂ Send My Photo & Get PDF
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section id="gallery" class="section-full">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="reveal">
+      <div class="section-eyebrow">Style Gallery</div>
+      <h2 class="section-title">Explore <em>Looks</em></h2>
+      <p class="section-sub">Browse our curated collection of hair and beard styles across different face types and preferences.</p>
+    </div>
+
+    <div class="gallery-tabs reveal">
+      <button class="tab-btn active" onclick="switchTab('hair', this)">Hair Styles</button>
+      <button class="tab-btn" onclick="switchTab('beard', this)">Beard Styles</button>
+      <button class="tab-btn" onclick="switchTab('combo', this)">Full Looks</button>
+    </div>
+
+    <div id="tab-hair" class="tab-content active reveal">
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#1a1a1a,#2a2010)">
+          <div class="gallery-emoji">💇</div>
+          <div class="gallery-style-name">The Skin Fade</div>
+          <div class="gallery-style-desc">High contrast. Sharp lines. Urban edge.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Skin Fade / High Fade</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Square Face</div>
+          <div class="gallery-overlay-tag">Low Maintenance</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#101820,#1a2030)">
+          <div class="gallery-emoji">🌊</div>
+          <div class="gallery-style-name">Textured Crop</div>
+          <div class="gallery-style-desc">Modern, effortless European classic.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Textured French Crop</div>
+          <div class="gallery-overlay-tag">Best for: Round, Oval Face</div>
+          <div class="gallery-overlay-tag">Medium Maintenance</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#1a1205,#251a00)">
+          <div class="gallery-emoji">✨</div>
+          <div class="gallery-style-name">Slick Back Undercut</div>
+          <div class="gallery-style-desc">Power. Elegance. Confidence.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Slick Back Undercut</div>
+          <div class="gallery-overlay-tag">Best for: Heart, Diamond Face</div>
+          <div class="gallery-overlay-tag">High Style</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#120a1a,#1a1025)">
+          <div class="gallery-emoji">🌀</div>
+          <div class="gallery-style-name">Curly Top Taper</div>
+          <div class="gallery-style-desc">Natural curls, structured foundation.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Curly Top with Taper</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Long Face</div>
+          <div class="gallery-overlay-tag">Natural Look</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#0a1a10,#102015)">
+          <div class="gallery-emoji">⚡</div>
+          <div class="gallery-style-name">Buzz Cut</div>
+          <div class="gallery-style-desc">Clean. Minimal. Zero effort.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Military Buzz Cut</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Square Face</div>
+          <div class="gallery-overlay-tag">Zero Maintenance</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#1a1010,#251515)">
+          <div class="gallery-emoji">🎭</div>
+          <div class="gallery-style-name">Classic Pompadour</div>
+          <div class="gallery-style-desc">Timeless. Bold. Unforgettable.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Classic Pompadour</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Rectangle Face</div>
+          <div class="gallery-overlay-tag">Statement Look</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-beard" class="tab-content reveal">
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#1a1206,#241a05)">
+          <div class="gallery-emoji">🧔</div>
+          <div class="gallery-style-name">The Full Beard</div>
+          <div class="gallery-style-desc">Masculine authority. Well-groomed.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Full Natural Beard</div>
+          <div class="gallery-overlay-tag">Best for: Round, Oval Face</div>
+          <div class="gallery-overlay-tag">Bold & Strong</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#0a1520,#10202a)">
+          <div class="gallery-emoji">🪒</div>
+          <div class="gallery-style-name">Corporate Stubble</div>
+          <div class="gallery-style-desc">Professional edge. Always sharp.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">3–5mm Corporate Stubble</div>
+          <div class="gallery-overlay-tag">Best for: All Face Shapes</div>
+          <div class="gallery-overlay-tag">Office Ready</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#12060a,#1e0810)">
+          <div class="gallery-emoji">💎</div>
+          <div class="gallery-style-name">The Goatee</div>
+          <div class="gallery-style-desc">Refined. Precise. Distinguished.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Classic Goatee</div>
+          <div class="gallery-overlay-tag">Best for: Round, Square Face</div>
+          <div class="gallery-overlay-tag">Slim Effect</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#101a0a,#182408)">
+          <div class="gallery-emoji">🌟</div>
+          <div class="gallery-style-name">Circle Beard</div>
+          <div class="gallery-style-desc">Neat. Symmetrical. Artistic.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Circle Beard / Anchor</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Heart Face</div>
+          <div class="gallery-overlay-tag">Artistic Look</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#1a0a00,#280f00)">
+          <div class="gallery-emoji">🦁</div>
+          <div class="gallery-style-name">Viking Beard</div>
+          <div class="gallery-style-desc">Wild spirit. Warrior energy.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Long Viking Beard</div>
+          <div class="gallery-overlay-tag">Best for: Square, Rectangle Face</div>
+          <div class="gallery-overlay-tag">Bold Statement</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#0a0a1a,#12122a)">
+          <div class="gallery-emoji">🎯</div>
+          <div class="gallery-style-name">Chinstrap</div>
+          <div class="gallery-style-desc">Clean jaw definition. Modern edge.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Chinstrap Beard</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Long Face</div>
+          <div class="gallery-overlay-tag">Defined Jaw</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-combo" class="tab-content reveal">
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#1a1206,#0a0a1a)">
+          <div class="gallery-emoji">👑</div>
+          <div class="gallery-style-name">The Executive</div>
+          <div class="gallery-style-desc">Taper + Short Beard. Corporate gold.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Classic Taper + Short Beard</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Square Face</div>
+          <div class="gallery-overlay-tag">Professional</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#12060a,#1a1206)">
+          <div class="gallery-emoji">🔥</div>
+          <div class="gallery-style-name">The Street King</div>
+          <div class="gallery-style-desc">Fade + Full Beard. Urban royalty.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">High Fade + Full Beard</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Round Face</div>
+          <div class="gallery-overlay-tag">Trending</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#0a1a10,#1a1206)">
+          <div class="gallery-emoji">🎩</div>
+          <div class="gallery-style-name">The Gentleman</div>
+          <div class="gallery-style-desc">Pompadour + Goatee. Class personified.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Pompadour + Goatee Combo</div>
+          <div class="gallery-overlay-tag">Best for: Heart, Diamond Face</div>
+          <div class="gallery-overlay-tag">Luxury Look</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#100a1a,#1a0a10)">
+          <div class="gallery-emoji">⚔️</div>
+          <div class="gallery-style-name">The Warrior</div>
+          <div class="gallery-style-desc">Long Hair + Viking Beard. Untamed.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Long Hair + Viking Beard</div>
+          <div class="gallery-overlay-tag">Best for: Square, Rectangle Face</div>
+          <div class="gallery-overlay-tag">Bold</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#001a0a,#0a1a1a)">
+          <div class="gallery-emoji">🌿</div>
+          <div class="gallery-style-name">The Natural</div>
+          <div class="gallery-style-desc">Curls + Stubble. Free-spirited cool.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Natural Curls + Stubble</div>
+          <div class="gallery-overlay-tag">Best for: Oval, Long Face</div>
+          <div class="gallery-overlay-tag">Casual</div>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-item-inner" style="background:linear-gradient(135deg,#1a0000,#1a1206)">
+          <div class="gallery-emoji">💼</div>
+          <div class="gallery-style-name">The Minimalist</div>
+          <div class="gallery-style-desc">Buzz Cut + Stubble. Effortless power.</div>
+        </div>
+        <div class="gallery-overlay">
+          <div class="gallery-overlay-text">Buzz Cut + Stubble</div>
+          <div class="gallery-overlay-tag">Best for: All Face Shapes</div>
+          <div class="gallery-overlay-tag">Zero Effort</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="testimonials">
+  <div class="section">
+    <div class="reveal" style="text-align:center;margin-bottom:60px;">
+      <div class="section-eyebrow" style="justify-content:center;">Client Reviews</div>
+      <h2 class="section-title">What Clients <em>Say</em></h2>
+    </div>
+    <div class="testimonials-grid reveal">
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">The PDF was incredibly detailed. My barber was impressed — he said it was the clearest brief a client had ever brought in. My skin fade has never looked better.</p>
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-author">Bilal Hassan</div>
+        <div class="testimonial-role">Lahore, Pakistan</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">I never knew my face shape was 'diamond' until BarberCraft told me. The beard recommendation was perfect — my chinstrap has changed my whole look completely.</p>
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-author">Usman Tariq</div>
+        <div class="testimonial-role">Karachi, Pakistan</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"</div>
+        <p class="testimonial-text">Worth every penny. I shared the PDF with three different barbers and they all loved how specific it was. Got the exact style I've always wanted but never knew how to describe.</p>
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-author">Hamza Malik</div>
+        <div class="testimonial-role">Islamabad, Pakistan</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div style="position:relative;z-index:2;">
+    <span class="cta-scissors">✂️</span>
+    <h2 class="cta-title">Ready to Find Your<br><span style="color:var(--gold);font-family:'Playfair Display',serif;font-style:italic;">Perfect Style?</span></h2>
+    <p class="cta-sub">Upload your photo today and receive a professionally crafted, personalised PDF style guide in your inbox within 24 hours.</p>
+    <a href="#upload" class="btn-primary" style="font-size:13px;padding:18px 48px;">Get My Style PDF — Free</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand-name">BarberCraft</div>
+      <p class="footer-tagline">Personalised hair and beard style consultation delivered as a beautiful PDF guide — straight to your inbox.</p>
+    </div>
+    <div>
+      <div class="footer-col-title">Services</div>
+      <ul class="footer-links">
+        <li><a href="#upload">Hair Style PDF</a></li>
+        <li><a href="#upload">Beard Guide PDF</a></li>
+        <li><a href="#upload">Full Style Report</a></li>
+        <li><a href="#upload">Color Consult</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Styles</div>
+      <ul class="footer-links">
+        <li><a href="#gallery">Fades & Tapers</a></li>
+        <li><a href="#gallery">Beard Styles</a></li>
+        <li><a href="#gallery">Full Looks</a></li>
+        <li><a href="#gallery">Classic Cuts</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Contact</div>
+      <ul class="footer-links">
+        <li><a href="#">WhatsApp Us</a></li>
+        <li><a href="#">Email Studio</a></li>
+        <li><a href="#">Instagram</a></li>
+        <li><a href="#">Facebook</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2025 BarberCraft Studio. All rights reserved.</div>
+    <div class="footer-socials">
+      <a href="#" class="social-btn">📸</a>
+      <a href="#" class="social-btn">💬</a>
+      <a href="#" class="social-btn">📘</a>
+    </div>
+  </div>
+</footer>
+
+<!-- TOAST -->
+<div class="success-toast" id="toast">
+  <div class="toast-title">✅ Opening WhatsApp...</div>
+  <div class="toast-msg">Your details are ready — complete the send on WhatsApp!</div>
+</div>
+
+<!-- FLOATING WHATSAPP BUTTON — bottom right corner -->
+<div class="wa-wrapper">
+  <div class="wa-ring r1"></div>
+  <div class="wa-ring r2"></div>
+  <a href="https://wa.me/923287345942" target="_blank" class="wa-btn" title="Chat on WhatsApp">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#25D366"/>
+      <path d="M23.5 8.5C21.7 6.7 19.3 5.6 16.7 5.5C11.3 5.5 7 9.8 7 15.2C7 16.9 7.5 18.6 8.3 20L7 25L12.2 23.7C13.6 24.5 15.1 24.9 16.7 24.9C22.1 24.9 26.4 20.6 26.4 15.2C26.5 12.6 25.4 10.2 23.5 8.5ZM16.7 23.2C15.3 23.2 13.9 22.8 12.7 22.1L12.4 21.9L9.3 22.7L10.1 19.7L9.9 19.4C9.1 18.1 8.6 16.7 8.6 15.2C8.6 10.7 12.2 7.1 16.7 7.1C18.8 7.1 20.8 7.9 22.3 9.4C23.8 10.9 24.6 12.9 24.6 15.1C24.7 19.7 21.2 23.2 16.7 23.2ZM21.2 17.3C21 17.2 19.8 16.6 19.6 16.5C19.4 16.4 19.2 16.4 19.1 16.6C18.9 16.8 18.4 17.4 18.3 17.5C18.1 17.7 18 17.7 17.8 17.6C17.6 17.5 16.9 17.3 16.1 16.5C15.5 16 15 15.2 14.9 15C14.7 14.8 14.9 14.7 15 14.6C15.1 14.5 15.2 14.3 15.4 14.2C15.5 14.1 15.6 13.9 15.6 13.8C15.7 13.7 15.7 13.5 15.6 13.4C15.5 13.3 15 12.1 14.8 11.6C14.6 11.2 14.4 11.2 14.2 11.2H13.8C13.6 11.2 13.3 11.3 13.1 11.5C12.9 11.7 12.3 12.3 12.3 13.5C12.3 14.7 13.1 15.9 13.2 16C13.4 16.2 15 18.6 17.4 19.6C19.3 20.4 19.9 20.3 20.4 20.2C21.1 20.1 22.2 19.6 22.4 18.9C22.6 18.3 22.6 17.8 22.5 17.7C22.4 17.5 22.2 17.4 21.2 17.3Z" fill="white"/>
+    </svg>
+  </a>
+  <span class="wa-tooltip">Chat on WhatsApp</span>
+</div>
+
+<!-- PHOTO MODAL -->
+<div class="photo-modal" id="photoModal">
+  <div class="pm-box">
+    <div class="pm-icon">📸</div>
+    <h3 class="pm-title">One Last Step!</h3>
+    <p class="pm-sub">WhatsApp opened with your full details. Now send your photo in that chat so we can create your personalised style PDF.</p>
+    <div class="pm-steps">
+      <div class="pm-step"><span class="pm-n">1</span><span>Your photo was <strong>saved/downloaded</strong> to your device.</span></div>
+      <div class="pm-step"><span class="pm-n">2</span><span>Switch to the <strong>WhatsApp chat</strong> that just opened.</span></div>
+      <div class="pm-step"><span class="pm-n">3</span><span>Tap <strong>📎 Attach</strong> → Gallery → send your photo.</span></div>
+    </div>
+    <div id="pmImgWrap"></div>
+    <div class="pm-btns">
+      <button class="pm-wa" onclick="window.open(lastWaURL,'_blank')">📱 Reopen WhatsApp</button>
+      <button class="pm-close" onclick="document.getElementById('photoModal').classList.remove('open')">✓ Done</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ── WHATSAPP BUTTON — FIXED BOTTOM RIGHT ── */
+.wa-wrapper {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 64px;
+  height: 64px;
+  z-index: 8000;
+}
+.wa-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(37,211,102,0.3);
+  animation: waPulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+.wa-ring.r2 { background: rgba(37,211,102,0.15); animation-delay: 1.2s; }
+@keyframes waPulse {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+.wa-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-decoration: none;
+  cursor: pointer;
+  animation: waBounce 2.6s ease-in-out infinite;
+  z-index: 2;
+}
+.wa-btn svg {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  box-shadow: 0 6px 28px rgba(37,211,102,0.55);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.wa-btn:hover svg {
+  transform: scale(1.13);
+  box-shadow: 0 10px 40px rgba(37,211,102,0.75);
+}
+@keyframes waBounce {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.wa-tooltip {
+  position: absolute;
+  right: 76px;
+  top: 50%;
+  transform: translateY(-50%) translateX(10px);
+  background: #25D366;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 18px rgba(37,211,102,0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.wa-tooltip::after {
+  content: '';
+  position: absolute;
+  right: -8px; top: 50%;
+  transform: translateY(-50%);
+  border: 7px solid transparent;
+  border-right: none;
+  border-left-color: #25D366;
+}
+.wa-wrapper:hover .wa-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* ── PHOTO MODAL ── */
+.photo-modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 9500;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+.photo-modal.open { display: flex; animation: mfade 0.3s ease; }
+@keyframes mfade { from { opacity:0; } to { opacity:1; } }
+.pm-box {
+  background: #131313;
+  border: 1px solid rgba(201,168,76,0.35);
+  max-width: 460px;
+  width: 92%;
+  padding: 42px 36px;
+  animation: mslide 0.4s ease;
+  text-align: center;
+}
+@keyframes mslide { from { transform:translateY(40px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+.pm-icon { font-size: 56px; margin-bottom: 16px; }
+.pm-title { font-family:'Cinzel',serif; font-size:21px; color:var(--off-white); margin-bottom:10px; }
+.pm-sub { font-size:13px; color:var(--muted); line-height:1.7; margin-bottom:28px; }
+.pm-steps { text-align:left; display:flex; flex-direction:column; gap:14px; margin-bottom:24px; }
+.pm-step { display:flex; align-items:flex-start; gap:12px; font-size:13px; color:rgba(240,235,225,0.85); line-height:1.6; }
+.pm-n { background:var(--gold); color:var(--obsidian); min-width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; }
+#pmImgWrap img { max-height:130px; max-width:100%; object-fit:cover; border:1px solid rgba(201,168,76,0.2); margin-bottom:20px; }
+.pm-btns { display:flex; gap:12px; }
+.pm-wa { flex:1; background:#25D366; color:#fff; border:none; padding:14px; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:background 0.3s; }
+.pm-wa:hover { background:#1da851; }
+.pm-close { flex:1; background:transparent; color:var(--muted); border:1px solid rgba(201,168,76,0.2); padding:14px; font-family:'Inter',sans-serif; font-size:13px; cursor:pointer; transition:border-color 0.3s,color 0.3s; }
+.pm-close:hover { border-color:var(--gold); color:var(--gold); }
+
+/* Photo note box */
+.photo-note {
+  background: rgba(37,211,102,0.07);
+  border: 1px solid rgba(37,211,102,0.25);
+  padding: 14px 18px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: #7AE89A;
+  line-height: 1.7;
+  border-radius: 2px;
+}
+.photo-note strong { color: #25D366; }
+</style>
+
+<script>
+// LOADER
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+  }, 1800);
+});
+
+// CURSOR
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursor.style.left = mx + 'px';
+  cursor.style.top = my + 'px';
+});
+
+function animateRing() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  ring.style.left = rx + 'px';
+  ring.style.top = ry + 'px';
+  requestAnimationFrame(animateRing);
+}
+animateRing();
+
+document.querySelectorAll('a, button, .service-card, .gallery-item, .upload-zone, .tab-btn').forEach(el => {
+  el.addEventListener('mouseenter', () => { cursor.classList.add('grow'); ring.classList.add('grow'); });
+  el.addEventListener('mouseleave', () => { cursor.classList.remove('grow'); ring.classList.remove('grow'); });
+});
+
+// NAV SCROLL
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// PARTICLES
+const particlesContainer = document.getElementById('particles');
+function createParticle() {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + 'vw';
+  p.style.animationDuration = (Math.random() * 12 + 8) + 's';
+  p.style.animationDelay = Math.random() * 5 + 's';
+  p.style.width = p.style.height = (Math.random() * 3 + 1) + 'px';
+  particlesContainer.appendChild(p);
+  setTimeout(() => p.remove(), 20000);
+}
+setInterval(createParticle, 600);
+for(let i=0;i<10;i++) setTimeout(createParticle, i*200);
+
+// SCROLL REVEAL
+const reveals = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('revealed'), 100);
+      io.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+reveals.forEach(el => io.observe(el));
+
+// FILE UPLOAD
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+const previewImg = document.getElementById('previewImg');
+const previewDiv = document.getElementById('uploadPreview');
+const previewName = document.getElementById('previewName');
+
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    previewImg.src = ev.target.result;
+    previewName.textContent = '📎 ' + file.name;
+    previewDiv.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    fileInput.dispatchEvent(new Event('change'));
+  }
+});
+
+// TABS
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+
+// SUBMIT → WHATSAPP + PHOTO DOWNLOAD + MODAL
+let lastWaURL = '';
+
+function handleSubmit() {
+  const fname    = document.getElementById('fname').value.trim();
+  const lname    = document.getElementById('lname').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const phone    = document.getElementById('phone').value.trim();
+  const hair     = document.getElementById('hairStyle').value;
+  const beard    = document.getElementById('beardStyle').value;
+  const notes    = document.getElementById('notes').value.trim();
+  const photoFile = fileInput.files && fileInput.files[0];
+
+  if (!fname || !email) {
+    alert('⚠️ Please fill in your Name and Email before sending.');
+    return;
+  }
+
+  // Build WhatsApp message
+  const lines = [
+    `✂️ *BarberCraft — New Style Request*`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `👤 *Name:* ${fname} ${lname}`,
+    `📧 *Email:* ${email}`,
+  ];
+  if (phone) lines.push(`📱 *WhatsApp:* ${phone}`);
+  lines.push(``);
+  lines.push(`💈 *Hair Style:* ${hair || 'Not specified'}`);
+  lines.push(`🧔 *Beard Style:* ${beard || 'Not specified'}`);
+  if (notes) lines.push(`📝 *Notes:* ${notes}`);
+  lines.push(``);
+  lines.push(photoFile
+    ? `📸 *Photo:* Sending now in this chat ⬇️`
+    : `📸 *Photo:* ⚠️ Client did not upload a photo yet.`);
+  lines.push(`━━━━━━━━━━━━━━━━━━`);
+  lines.push(`Please prepare personalised PDF. Thank you! 🙏`);
+
+  const msg = lines.join('\n');
+  const waNumber = '923287345942';
+  lastWaURL = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
+
+  // Show toast
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 5000);
+
+  if (photoFile) {
+    // Download photo to client device first
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      // Trigger download of the image
+      const dlLink = document.createElement('a');
+      dlLink.href = ev.target.result;
+      dlLink.download = 'my-style-photo-' + fname.toLowerCase() + '.' + photoFile.name.split('.').pop();
+      document.body.appendChild(dlLink);
+      dlLink.click();
+      document.body.removeChild(dlLink);
+
+      // Show modal with preview
+      const pmWrap = document.getElementById('pmImgWrap');
+      pmWrap.innerHTML = '<img src="' + ev.target.result + '" alt="Your photo">';
+      document.getElementById('photoModal').classList.add('open');
+
+      // Open WhatsApp (slight delay so download starts first)
+      setTimeout(() => window.open(lastWaURL, '_blank'), 800);
+    };
+    reader.readAsDataURL(photoFile);
+  } else {
+    // No photo — just open WhatsApp
+    setTimeout(() => window.open(lastWaURL, '_blank'), 400);
+  }
+
+  // Clear form
+  setTimeout(() => {
+    ['fname','lname','email','phone','notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('hairStyle').selectedIndex = 0;
+    document.getElementById('beardStyle').selectedIndex = 0;
+    previewDiv.style.display = 'none';
+    fileInput.value = '';
+  }, 1000);
+}
+
+// SMOOTH SCROLL
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+});
+</script>
+</body>
+</html>
